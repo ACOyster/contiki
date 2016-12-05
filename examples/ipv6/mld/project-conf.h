@@ -46,15 +46,6 @@
 /* Change this to switch engines. Engine codes in uip-mcast6-engines.h */
 #define UIP_MCAST6_CONF_ENGINE UIP_MCAST6_ENGINE_ROLL_TM
 
-#ifndef WITH_STORING
-#define WITH_STORING 1 /* Set this to run with non-storing mode */
-#endif /* WITH_STORING */
-
-#if WITH_STORING
-#undef RPL_CONF_MOP
-#define RPL_CONF_MOP RPL_MOP_STORING_MULTICAST /* Mode of operation*/
-#endif /* WITH_STORING */
-
 /* For Imin: Use 16 over NullRDC, 64 over Contiki MAC */
 #define ROLL_TM_CONF_IMIN_1         64
 
@@ -71,7 +62,41 @@
 /* Code/RAM footprint savings so that things will fit on our device */
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
-#define NBR_TABLE_CONF_MAX_NEIGHBORS  5
-#define UIP_CONF_MAX_ROUTES           5
+#define NBR_TABLE_CONF_MAX_NEIGHBORS  10
+#define UIP_CONF_MAX_ROUTES           10
+
+#ifndef WITH_STORING
+#define WITH_STORING 1 /* Set this to run with non-storing mode */
+#endif /* WITH_STORING */
+
+#if WITH_STORING
+#undef RPL_NS_CONF_LINK_NUM
+#define RPL_NS_CONF_LINK_NUM 10 /* Number of links maintained at the root */
+#undef RPL_CONF_MOP
+#define RPL_CONF_MOP RPL_MOP_STORING_MULTICAST /* Mode of operation*/
+#endif /* WITH_STORING */
+
+#undef UIP_MCAST6_ROUTE_CONF_ROUTES
+#define UIP_MCAST6_ROUTE_CONF_ROUTES 20 /* Number of multicast routes */
+#undef UIP_CONF_DS6_MADDR_NBU
+#define UIP_CONF_DS6_MADDR_NBU 10 /* Number of multicast addresses */
+
+#ifndef QUEUEBUF_CONF_NUM
+#define QUEUEBUF_CONF_NUM          4
+#endif
+
+#ifndef UIP_CONF_BUFFER_SIZE
+#define UIP_CONF_BUFFER_SIZE    140
+#endif
+
+#define MLD_CONF                  1
+
+#ifndef UIP_FALLBACK_INTERFACE
+#define UIP_FALLBACK_INTERFACE rpl_interface
+#endif
+
+//#ifndef UIP_CONF_RECEIVE_WINDOW
+//#define UIP_CONF_RECEIVE_WINDOW  60
+//#endif
 
 #endif /* PROJECT_CONF_H_ */

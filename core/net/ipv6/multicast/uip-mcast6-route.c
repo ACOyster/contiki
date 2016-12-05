@@ -45,9 +45,14 @@
 #include "lib/memb.h"
 #include "net/ip/uip.h"
 #include "net/ipv6/multicast/uip-mcast6-route.h"
+#include "net/ipv6/multicast/mld.h"
+#include "net/ipv6/uip-ds6.h"
 
 #include <stdint.h>
 #include <string.h>
+
+#define DEBUG DEBUG_NONE
+#include "net/ip/uip-debug.h"
 
 /*---------------------------------------------------------------------------*/
 /* Size of the multicast routing table */
@@ -86,9 +91,13 @@ uip_mcast6_route_add(uip_ipaddr_t *group)
     /* Allocate an entry and add the group to the list */
     locmcastrt = memb_alloc(&mcast_route_memb);
     if(locmcastrt == NULL) {
-      return NULL;
+      //return NULL;
     }
     list_add(mcast_route_list, locmcastrt);
+#if MLD_CONF
+    uip_ds6_maddr_add(group);
+    mld_initial_report(uip_ds6_maddr_lookup(group));
+#endif /*MLD_CONF*/
   }
 
   /* Reaching here means we either found the prefix or allocated a new one */
@@ -108,6 +117,10 @@ uip_mcast6_route_rm(uip_mcast6_route_t *route)
     if(locmcastrt == route) {
       list_remove(mcast_route_list, route);
       memb_free(&mcast_route_memb, route);
+#if MLD_CONF
+      mld_done(&route->group);
+      uip_ds6_maddr_rm(uip_ds6_maddr_lookup(&route->group));
+#endif /*MLD_CONF*/
       return;
     }
   }

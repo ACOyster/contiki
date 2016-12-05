@@ -742,6 +742,21 @@ tcpip_ipv6_output(void)
       return;
     }
   }
+#ifdef UIP_FALLBACK_INTERFACE
+  /* Global Multicast IP destination address. */
+  if (uip_is_addr_mcast_global(&UIP_IP_BUF->destipaddr)) {
+    PRINTF("FALLBACK: global multicast send\n",
+    uip_ext_len, *((uint8_t *)UIP_IP_BUF + 40));
+    if(uip_ext_len > 0) {
+      extern void remove_ext_hdr(void);
+      uint8_t proto = *((uint8_t *)UIP_IP_BUF + 40);
+      remove_ext_hdr();
+      /* This should be copied from the ext header... */
+      UIP_IP_BUF->proto = proto;
+    }
+    UIP_FALLBACK_INTERFACE.output();
+  }
+#endif /* UIP_FALLBACK_INTERFACE */
   /* Multicast IP destination address. */
   tcpip_output(NULL);
   uip_clear_buf();

@@ -428,7 +428,7 @@ uip_ds6_maddr_add(const uip_ipaddr_t *ipaddr)
      ((uip_ds6_element_t *)uip_ds6_if.maddr_list, UIP_DS6_MADDR_NB,
       sizeof(uip_ds6_maddr_t), (void*)ipaddr, 128,
       (uip_ds6_element_t **)&locmaddr) == FREESPACE) {
-    locmaddr->isused = 1;
+	locmaddr->isused = 1;
     uip_ipaddr_copy(&locmaddr->ipaddr, ipaddr);
     return locmaddr;
   }

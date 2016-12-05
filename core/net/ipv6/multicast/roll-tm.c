@@ -49,7 +49,7 @@
 #include "dev/watchdog.h"
 #include <string.h>
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
 #define TRICKLE_VERBOSE 0
@@ -1329,7 +1329,6 @@ out()
   /* Slide 'right' by HBHO_TOTAL_LEN bytes */
   memmove(UIP_EXT_BUF_NEXT, UIP_EXT_BUF, uip_len - UIP_IPH_LEN);
   memset(UIP_EXT_BUF, 0, HBHO_TOTAL_LEN);
-
   UIP_EXT_BUF->next = UIP_IP_BUF->proto;
   UIP_EXT_BUF->len = 0;
 
@@ -1394,6 +1393,12 @@ in()
    * on accept()'s return value, we then need to signal the core
    * whether to deliver this to higher layers
    */
+
+  if(uip_is_addr_mcast_global(&UIP_IP_BUF->destipaddr)) {
+	uip_mcast6_route_add(&UIP_IP_BUF->destipaddr);
+	PRINTF("ROLL TM: Global. Registering Route\n");
+  }
+
   if(accept(ROLL_TM_DGRAM_IN) == UIP_MCAST6_DROP) {
     return UIP_MCAST6_DROP;
   }

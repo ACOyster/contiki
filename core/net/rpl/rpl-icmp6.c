@@ -757,7 +757,7 @@ dao_input_storing(void)
 
 #if RPL_WITH_MULTICAST
   if(uip_is_addr_mcast_global(&prefix)) {
-    mcast_group = uip_mcast6_route_add(&prefix);
+	mcast_group = uip_mcast6_route_add(&prefix);
     if(mcast_group) {
       mcast_group->dag = dag;
       mcast_group->lifetime = RPL_LIFETIME(instance, lifetime);

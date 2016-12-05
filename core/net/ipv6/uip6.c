@@ -1193,13 +1193,37 @@ uip_process(uint8_t flag)
    * All multicast engines must hook in here. After this function returns, we
    * expect UIP_BUF to be unmodified
    */
+
+#if MLD_CONF
+  if(*uip_next_hdr == UIP_PROTO_ICMP6 &&
+		  (UIP_ICMP_BUF->type == ICMP6_MLD_QUERY ||
+		  UIP_ICMP_BUF->type == ICMP6_MLD_REPORT)) {
+    PRINTF("UIP: MLD ICMP Message, passing to higher layers\n");
+    goto process;
+  }
+#endif /* MLD_CONF */
+
 #if UIP_IPV6_MULTICAST
   if(uip_is_addr_mcast_routable(&UIP_IP_BUF->destipaddr)) {
+	PRINTF("UIP: Passing packet to MC engine\n");
     if(UIP_MCAST6.in() == UIP_MCAST6_ACCEPT) {
       /* Deliver up the stack */
+#if MLD_CONF
+      if (uip_is_addr_mcast_global(&UIP_IP_BUF->destipaddr)) {
+        /*Forward global multicast packets to fallback*/
+    	tcpip_ipv6_output();
+      }
+#endif/*MLD_CONF*/
       goto process;
     } else {
       /* Don't deliver up the stack */
+#if MLD_CONF
+      if (uip_is_addr_mcast_global(&UIP_IP_BUF->destipaddr)) {
+        /*Forward global multicast packets to fallback*/
+    	UIP_MCAST6.out();
+    	tcpip_ipv6_output();
+      }
+#endif/*MLD_CONF*/
       goto drop;
     }
   }
@@ -1522,11 +1546,18 @@ uip_process(uint8_t flag)
       goto udp_found;
     }
   }
+
   PRINTF("udp: no matching connection found\n");
   UIP_STAT(++uip_stat.udp.drop);
 
-  uip_icmp6_error_output(ICMP6_DST_UNREACH, ICMP6_DST_UNREACH_NOPORT, 0);
-  goto send;
+  if (uip_is_addr_mcast(&UIP_IP_BUF->destipaddr)) {
+	/* Stop dst_unreach sending for multicast addresses without open ports*/
+	PRINTF("udp: multicast without port recieved, dropping\n");
+	goto drop;
+  } else {
+	uip_icmp6_error_output(ICMP6_DST_UNREACH, ICMP6_DST_UNREACH_NOPORT, 0);
+	goto send;
+  }
 
   udp_found:
   PRINTF("In udp_found\n");

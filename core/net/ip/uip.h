@@ -1772,6 +1772,12 @@ typedef struct uip_ext_hdr {
   uint8_t len;
 } uip_ext_hdr;
 
+typedef struct uip_ext_hdr_rtr_alert_tlv {
+  uint8_t tag;
+  uint8_t len;
+  uint16_t value;
+} uip_ext_hdr_rtr_alert_tlv;
+
 /* Hop by Hop option header */
 typedef struct uip_hbho_hdr {
   uint8_t next;
@@ -1784,7 +1790,14 @@ typedef struct uip_desto_hdr {
   uint8_t len;
 } uip_desto_hdr;
 
-/* We do not define structures for PAD1 and PADN options */
+/* Tag-length-value part for PadN option */
+typedef struct uip_ext_hdr_padn_tlv {
+  uint8_t tag;
+  uint8_t len;
+  /* remaining bytes are implied by length */
+} uip_ext_hdr_padn_tlv;
+
+/* We do not define structures for PAD1 option */
 
 /*
  * routing header
@@ -1910,6 +1923,7 @@ struct uip_udp_hdr {
 /** \brief  Destination and Hop By Hop extension headers option types */
 #define UIP_EXT_HDR_OPT_PAD1  0
 #define UIP_EXT_HDR_OPT_PADN  1
+#define UIP_EXT_HDR_OPT_RTR_ALERT 5
 #define UIP_EXT_HDR_OPT_RPL   0x63
 
 /** @} */

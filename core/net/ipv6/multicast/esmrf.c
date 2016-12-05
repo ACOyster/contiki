@@ -53,7 +53,7 @@
 
 extern uint16_t uip_slen;
 
-#define DEBUG NONE
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
 #define ESMRF_VERBOSE NONE
