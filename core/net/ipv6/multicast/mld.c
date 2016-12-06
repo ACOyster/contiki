@@ -1,4 +1,4 @@
-#include "net/ipv6/mld.h"
+#include "net/ipv6/multicast/mld.h"
 
 #if UIP_CONF_MLD
 
