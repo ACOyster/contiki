@@ -44,6 +44,7 @@
 #include "contiki-lib.h"
 #include "contiki-net.h"
 #include "net/ipv6/multicast/uip-mcast6.h"
+#include "net/ipv6/multicast/mld.h"
 
 #include <string.h>
 
@@ -62,8 +63,8 @@ static uint16_t count;
 #error "Check the values of: NETSTACK_CONF_WITH_IPV6, UIP_CONF_ROUTER, UIP_CONF_IPV6_RPL"
 #endif
 /*---------------------------------------------------------------------------*/
-PROCESS(mcast_sink_process, "Multicast Sink");
-AUTOSTART_PROCESSES(&mcast_sink_process);
+PROCESS(mld_router_process, "MLD Router");
+AUTOSTART_PROCESSES(&mld_router_process);
 /*---------------------------------------------------------------------------*/
 static void
 tcpip_handler(void)
@@ -103,11 +104,9 @@ join_mcast_group(void)
   return rv;
 }
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(mcast_sink_process, ev, data)
+PROCESS_THREAD(mld_router_process, ev, data)
 {
   PROCESS_BEGIN();
-
-  PRINTF("Multicast Engine: '%s'\n", UIP_MCAST6.name);
 
   if(join_mcast_group() == NULL) {
     PRINTF("Failed to join multicast group\n");
@@ -116,13 +115,15 @@ PROCESS_THREAD(mcast_sink_process, ev, data)
 
   count = 0;
 
-  sink_conn = udp_new(NULL, UIP_HTONS(0), NULL);
-  udp_bind(sink_conn, UIP_HTONS(MCAST_SINK_UDP_PORT));
+  multicast_conn = udp_new(NULL, UIP_HTONS(0), NULL);
+  udp_bind(multicast_conn, UIP_HTONS(MCAST_UDP_PORT));
 
   PRINTF("Listening: ");
-  PRINT6ADDR(&sink_conn->ripaddr);
+  PRINT6ADDR(&multicast_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n",
-        UIP_HTONS(sink_conn->lport), UIP_HTONS(sink_conn->rport));
+        UIP_HTONS(multicast_conn->lport), UIP_HTONS(multicast_conn->rport));
+
+  uip_icmp6_mldv1_initial_report(NULL)
 
   while(1) {
     PROCESS_YIELD();
