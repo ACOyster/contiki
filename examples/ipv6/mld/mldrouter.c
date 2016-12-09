@@ -51,9 +51,9 @@
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
-#define MCAST_SINK_UDP_PORT 3001 /* Host byte order */
+#define MCAST_UDP_PORT 3001 /* Host byte order */
 
-static struct uip_udp_conn *sink_conn;
+static struct uip_udp_conn *multicast_conn;
 static uint16_t count;
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
