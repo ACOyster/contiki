@@ -123,7 +123,7 @@ PROCESS_THREAD(mld_router_process, ev, data)
   PRINTF(" local/remote port %u/%u\n",
         UIP_HTONS(multicast_conn->lport), UIP_HTONS(multicast_conn->rport));
 
-  uip_icmp6_mldv1_initial_report(NULL)
+  uip_icmp6_mldv1_initial_report(NULL);
 
   while(1) {
     PROCESS_YIELD();
