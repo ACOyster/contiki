@@ -7,9 +7,9 @@
 
 #include <stdbool.h>
 
-#include "net/uip.h"
-#include "net/uip-ds6.h"
-#include "net/uip-icmp6.h"
+#include "net/ip/uip.h"
+#include "net/ipv6/uip-ds6.h"
+#include "net/ipv6/uip-icmp6.h"
 #include "lib/random.h"
 
 #define DEBUG DEBUG_NONE
