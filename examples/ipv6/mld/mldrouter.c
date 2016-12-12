@@ -143,6 +143,7 @@ set_own_addresses(void)
 PROCESS_THREAD(rpl_root_process, ev, data)
 {
   static struct etimer et;
+  uip_ipaddr_t addr;
 
   PROCESS_BEGIN();
 
@@ -154,6 +155,8 @@ PROCESS_THREAD(rpl_root_process, ev, data)
 
   prepare_mcast();
 
+  uip_ip6addr(&addr, 0xFF02,0,0,0,0,0,0,0x02);
+
   etimer_set(&et, START_DELAY * CLOCK_SECOND);
   while(1) {
     PROCESS_YIELD();
@@ -162,8 +165,8 @@ PROCESS_THREAD(rpl_root_process, ev, data)
         etimer_stop(&et);
       } else {
         multicast_send();
-        icmptest(&uip_ds6_if.addr_list[1].ipaddr);
-        etimer_set(&et, SEND_INTERVAL);
+        icmptest(&addr);
+        etimer_set(&et, 100 * SEND_INTERVAL);
       }
     }
   }
