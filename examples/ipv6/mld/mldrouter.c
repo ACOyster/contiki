@@ -154,8 +154,6 @@ PROCESS_THREAD(rpl_root_process, ev, data)
 
   prepare_mcast();
 
-  icmptest(&uip_ds6_if.addr_list[1].ipaddr);
-
   etimer_set(&et, START_DELAY * CLOCK_SECOND);
   while(1) {
     PROCESS_YIELD();
@@ -164,6 +162,7 @@ PROCESS_THREAD(rpl_root_process, ev, data)
         etimer_stop(&et);
       } else {
         multicast_send();
+        icmptest(&uip_ds6_if.addr_list[1].ipaddr);
         etimer_set(&et, SEND_INTERVAL);
       }
     }
