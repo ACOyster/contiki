@@ -9,7 +9,7 @@
 
 struct etimer uip_mld_timer_periodic;
 
-static inline void mld_set_report_time(uip_ds6_maddr_t * addr, uint16_t timeout)
+/*static inline void mld_set_report_time(uip_ds6_maddr_t * addr, uint16_t timeout)
 {
   int when = random_rand() % timeout;
 
@@ -17,11 +17,11 @@ static inline void mld_set_report_time(uip_ds6_maddr_t * addr, uint16_t timeout)
   PRINT6ADDR(&addr->ipaddr);
   PRINTF("\n");
   stimer_set(&addr->report_timeout, when); //This needs to check if the timer is already lower than this value
-}
+}*/
 
-static void send_mldv1_packet(uip_ip6addr_t * maddr, uint8_t mld_type)
+/*static void send_mldv1_packet(uip_ip6addr_t * maddr, uint8_t mld_type)
 {
-  uip_ipaddr_t destipaddr;
+  uip_ipaddr_t destipaddr;*/ //TODO: Remove
   
   /* MLD requires hoplimits to be 1 and source addresses to be link-local.
    * Since routers must send queries from link-local addresses, a link local
@@ -30,45 +30,46 @@ static void send_mldv1_packet(uip_ip6addr_t * maddr, uint8_t mld_type)
    * will choose a routable address (if available) for multicast groups that are themselves
    * routable. Thus, select the source address before filling the destination.
    **/
-  UIP_IP_BUF->ttl = 1;
-  uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);
+  /*UIP_IP_BUF->ttl = 1;
+  uip_ds6_select_src(&UIP_IP_BUF->srcipaddr, &UIP_IP_BUF->destipaddr);*/ //TODO: Remove
   /* If the selected source is ::, the MLD packet would be invalid. */
-  if(uip_is_addr_unspecified(&UIP_IP_BUF->destipaddr)) {
+  /*if(uip_is_addr_unspecified(&UIP_IP_BUF->destipaddr)) {
     return;
   }
 
-  if(mld_type == ICMP6_ML_REPORT) {
-    destipaddr = maddr
+  if(mld_type == ICMP6_ML_REPORT)
+  {
+    destipaddr = maddr;
   } else {
     uip_create_linklocal_allrouters_mcast(destipaddr);
   }
 
   UIP_IP_BUF->proto = UIP_PROTO_HBHO;
 
-  ((uip_hbho_hdr *) & uip_buf[uip_len])->next = UIP_PROTO_ICMP6;
+  ((uip_hbho_hdr *) & uip_buf[uip_len])->next = UIP_PROTO_ICMP6;*/ //TODO: Remove
   /* we need only pad with two bytes, so the PadN header is sufficient */
   /* also, len is in units of eight octets, excluding the first. */
-  ((uip_hbho_hdr *) & uip_buf[uip_len])->len =
+  /*((uip_hbho_hdr *) & uip_buf[uip_len])->len =
     (UIP_HBHO_LEN + UIP_RTR_ALERT_LEN + UIP_PADN_LEN) / 8 - 1;
 
   ((uip_ext_hdr_rtr_alert_tlv *) & uip_buf[uip_len])->tag =
     UIP_EXT_HDR_OPT_RTR_ALERT;
-  ((uip_ext_hdr_rtr_alert_tlv *) & uip_buf[uip_len])->len = 2;  /* data length of value field */
-  ((uip_ext_hdr_rtr_alert_tlv *) & uip_buf[uip_len])->value = 0;        /* MLD message */
+  ((uip_ext_hdr_rtr_alert_tlv *) & uip_buf[uip_len])->len = 2;*/ //TODO: Remove  /* data length of value field */
+  /*((uip_ext_hdr_rtr_alert_tlv *) & uip_buf[uip_len])->value = 0; */ //TODO: Remove       /* MLD message */
 
-  ((uip_ext_hdr_padn_tlv *) & uip_buf[uip_len])->tag = UIP_EXT_HDR_OPT_PADN;
-  ((uip_ext_hdr_padn_tlv *) & uip_buf[uip_len])->len = 0;       /* no data bytes following */
+  /*((uip_ext_hdr_padn_tlv *) & uip_buf[uip_len])->tag = UIP_EXT_HDR_OPT_PADN;
+  ((uip_ext_hdr_padn_tlv *) & uip_buf[uip_len])->len = 0;*/ //TODO: Remove       /* no data bytes following */
 
-  uip_ext_len = UIP_HBHO_LEN + UIP_RTR_ALERT_LEN + UIP_PADN_LEN;
+  /*uip_ext_len = UIP_HBHO_LEN + UIP_RTR_ALERT_LEN + UIP_PADN_LEN;
   
   UIP_ICMP6_MLD_BUF->maximum_delay = 0;
   UIP_ICMP6_MLD_BUF->reserved = 0;
   uip_ipaddr_copy(&UIP_ICMP6_MLD_BUF->address, maddr);
   
   uip_icmp6_send(destipaddr, mld_type, 0, UIP_ICMP6_MLD1_LEN)
-}
+}*/ //TODO: Remove
 
-void uip_icmp6_mldv1_initial_report(uip_ds6_maddr_t * addr)
+/*void uip_icmp6_mldv1_initial_report(uip_ds6_maddr_t * addr)
 {
   addr->report_count = 3;
   stimer_set(&addr->report_timeout, 0);		//Should be for config [Unsolicted report interval]
@@ -187,6 +188,11 @@ void uip_mld_periodic(void)
 
   if (more)
     etimer_set(&uip_mld_timer_periodic, CLOCK_SECOND / 4);
+}*/
+
+void icmptest(uip_ip6addr_t * addr)
+{
+	uip_icmp6_send(addr, 128, 0, 0)
 }
 
 #endif

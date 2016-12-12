@@ -24,7 +24,7 @@
 //Report timeout for multicast adresses, in seconds.
 #define UIP_IP6_MLD_REPORT_INTERVAL 10
 
-//Send an initial report for this multicast address for new listening.
+/*//Send an initial report for this multicast address for new listening.
 void uip_icmp6_mldv1_initial_report(uip_ds6_maddr_t * addr);
 
 //Send a report for this multicast address
@@ -40,7 +40,9 @@ void uip_icmp6_ml_query_input(void);
 void uip_icmp6_ml_report_input(void);
 
 //Periodically calls MLD reporting function if required
-void uip_mld_periodic(void);
+void uip_mld_periodic(void);*/
+
+void icmptest(uip_ip6addr_t * addr);
 
 extern struct etimer uip_mld_timer_periodic;
 

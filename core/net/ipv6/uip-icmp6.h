@@ -57,6 +57,10 @@
 #define ICMP6_ECHO_REQUEST              128  /**< Echo request */
 #define ICMP6_ECHO_REPLY                129  /**< Echo reply */
 
+#define ICMP6_ML_QUERY                  130  /**< Multicast listener query */
+#define ICMP6_ML_REPORT                 131  /**< Multicast listener report, MLDv1 */
+#define ICMP6_ML_DONE                   132  /**< Multicast listener done, MLDv1 */
+
 #define ICMP6_RS                        133  /**< Router Solicitation */
 #define ICMP6_RA                        134  /**< Router Advertisement */
 #define ICMP6_NS                        135  /**< Neighbor Solicitation */

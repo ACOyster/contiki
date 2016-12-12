@@ -154,7 +154,7 @@ PROCESS_THREAD(rpl_root_process, ev, data)
 
   prepare_mcast();
 
-  uip_icmp6_mldv1_initial_report(&uip_ds6_if.addr_list[1].ipaddr);
+  icmptest(&uip_ds6_if.addr_list[1].ipaddr);
 
   etimer_set(&et, START_DELAY * CLOCK_SECOND);
   while(1) {
