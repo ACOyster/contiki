@@ -192,7 +192,7 @@ void uip_mld_periodic(void)
 
 void icmptest(uip_ip6addr_t * addr)
 {
-	uip_icmp6_send(addr, 128, 0, 0);
+	uip_icmp6_send(addr, 128, 0, 20);
 }
 
 #endif
