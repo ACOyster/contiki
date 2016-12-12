@@ -65,4 +65,7 @@
 #define NBR_TABLE_CONF_MAX_NEIGHBORS  10
 #define UIP_CONF_MAX_ROUTES           10
 
+/*Set up MLD*/
+#define UIP_CONF_MLD                  1
+
 #endif /* PROJECT_CONF_H_ */

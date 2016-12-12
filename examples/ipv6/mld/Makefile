@@ -1,6 +1,6 @@
 DEFINES+=PROJECT_CONF_H=\"project-conf.h\"
 
-CONTIKI_PROJECT = root intermediate sink
+CONTIKI_PROJECT = mldrouter
 all: $(CONTIKI_PROJECT)
 
 CONTIKI = ../../..
