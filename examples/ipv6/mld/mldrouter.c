@@ -43,13 +43,29 @@
 #include "contiki-lib.h"
 #include "contiki-net.h"
 #include "net/ipv6/multicast/uip-mcast6.h"
-#include "net/ipv6/multicast/mld.h"
+#include "net/ip/uip.h"
+#include "net/ipv6/uip-ds6.h"
+#include "net/rpl/rpl.h"
+#include "net/rpl/rpl-private.h"
+#if RPL_WITH_NON_STORING
+#include "net/rpl/rpl-ns.h"
+#endif /* RPL_WITH_NON_STORING */
+#include "net/netstack.h"
+#include "dev/button-sensor.h"
+#include "dev/slip.h"
 
 #include <string.h>
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
-#include "net/rpl/rpl.h"
+
+static struct uip_udp_conn *sink_conn;
+static uint16_t count;
+
+#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
+
+static uip_ipaddr_t prefix;
+static uint8_t prefix_set;
 
 #define MAX_PAYLOAD_LEN 120
 #define MCAST_SINK_UDP_PORT 3001 /* Host byte order */
@@ -60,114 +76,135 @@
  * converge */
 #define START_DELAY 60
 
-static struct uip_udp_conn * mcast_conn;
-static char buf[MAX_PAYLOAD_LEN];
-static uint32_t seq_id;
-
 /*#if NETSTACK_CONF_WITH_IPV6 || !UIP_CONF_ROUTER || !UIP_IPV6_MULTICAST || !UIP_CONF_IPV6_RPL
 #error "This example can not work with the current contiki configuration"
 #error "Check the values of: NETSTACK_CONF_WITH_IPV6, UIP_CONF_ROUTER, UIP_CONF_IPV6_RPL"
 #endif*/ //TODO: Remove comments
 /*---------------------------------------------------------------------------*/
-PROCESS(rpl_root_process, "RPL ROOT, Multicast Sender");
-AUTOSTART_PROCESSES(&rpl_root_process);
+PROCESS(mcast_sink_process, "Multicast Sink");
+AUTOSTART_PROCESSES(&mcast_sink_process);
 /*---------------------------------------------------------------------------*/
 static void
-multicast_send(void)
+tcpip_handler(void)
 {
-  uint32_t id;
-
-  id = uip_htonl(seq_id);
-  memset(buf, 0, MAX_PAYLOAD_LEN);
-  memcpy(buf, &id, sizeof(seq_id));
-
-  PRINTF("Send to: ");
-  PRINT6ADDR(&mcast_conn->ripaddr);
-  PRINTF(" Remote Port %u,", uip_ntohs(mcast_conn->rport));
-  PRINTF(" (msg=0x%08lx)", (unsigned long)uip_ntohl(*((uint32_t *)buf)));
-  PRINTF(" %lu bytes\n", (unsigned long)sizeof(id));
-
-  seq_id++;
-  uip_udp_packet_send(mcast_conn, buf, sizeof(id));
+  if(uip_newdata()) {
+    count++;
+    PRINTF("In: [0x%08lx], TTL %u, total %u\n",
+        uip_ntohl((unsigned long) *((uint32_t *)(uip_appdata))),
+        UIP_IP_BUF->ttl, count);
+  }
+  return;
 }
 /*---------------------------------------------------------------------------*/
-static void
-prepare_mcast(void)
+static uip_ds6_maddr_t *
+join_mcast_group(void)
 {
-  uip_ipaddr_t ipaddr;
+  uip_ipaddr_t addr;
+  uip_ds6_maddr_t *rv;
+
+  /* First, set our v6 global */
+  uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
+  uip_ds6_set_addr_iid(&addr, &uip_lladdr);
+  uip_ds6_addr_add(&addr, 0, ADDR_AUTOCONF);
 
   /*
    * IPHC will use stateless multicast compression for this destination
    * (M=1, DAC=0), with 32 inline bits (1E 89 AB CD)
    */
-  uip_ip6addr(&ipaddr, 0xFF1E,0,0,0,0,0,0x89,0xABCD);
-  mcast_conn = udp_new(&ipaddr, UIP_HTONS(MCAST_SINK_UDP_PORT), NULL);
+  uip_ip6addr(&addr, 0xFF1E,0,0,0,0,0,0x89,0xABCD);
+  rv = uip_ds6_maddr_add(&addr);
+
+  if(rv) {
+    PRINTF("Joined multicast group ");
+    PRINT6ADDR(&uip_ds6_maddr_lookup(&addr)->ipaddr);
+    PRINTF("\n");
+  }
+  return rv;
 }
 /*---------------------------------------------------------------------------*/
-static void
-set_own_addresses(void)
+void
+request_prefix(void)
 {
-  int i;
-  uint8_t state;
+  /* mess up uip_buf with a dirty request... */
+  uip_buf[0] = '?';
+  uip_buf[1] = 'P';
+  uip_len = 2;
+  slip_send();
+  uip_clear_buf();
+}
+/*---------------------------------------------------------------------------*/
+void
+set_prefix_64(uip_ipaddr_t *prefix_64)
+{
   rpl_dag_t *dag;
   uip_ipaddr_t ipaddr;
-
-  uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
+  memcpy(&prefix, prefix_64, 16);
+  memcpy(&ipaddr, prefix_64, 16);
+  prefix_set = 1;
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
 
-  PRINTF("Our IPv6 addresses:\n");
-  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
-    state = uip_ds6_if.addr_list[i].state;
-    if(uip_ds6_if.addr_list[i].isused && (state == ADDR_TENTATIVE || state
-        == ADDR_PREFERRED)) {
-      PRINTF("  ");
-      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
-      if(state == ADDR_TENTATIVE) {
-        uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
-      }
-    }
-  }
-
-  /* Become root of a new DODAG with ID our global v6 address */
   dag = rpl_set_root(RPL_DEFAULT_INSTANCE, &ipaddr);
   if(dag != NULL) {
-    rpl_set_prefix(dag, &ipaddr, 64);
-    PRINTF("Created a new RPL dag with ID: ");
-    PRINT6ADDR(&dag->dag_id);
-    PRINTF("\n");
+    rpl_set_prefix(dag, &prefix, 64);
+    PRINTF("created a new RPL dag\n");
   }
 }
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(rpl_root_process, ev, data)
+PROCESS_THREAD(mcast_sink_process, ev, data)
 {
   static struct etimer et;
-  uip_ipaddr_t addr;
 
   PROCESS_BEGIN();
 
-  PRINTF("Multicast Engine: '%s'\n", UIP_MCAST6.name);
+  prefix_set = 0;
+    NETSTACK_MAC.off(0);
 
+    PROCESS_PAUSE();
+
+    SENSORS_ACTIVATE(button_sensor);
+
+    PRINTF("RPL-Border router started\n");
+  #if 0
+     /* The border router runs with a 100% duty cycle in order to ensure high
+       packet reception rates.
+       Note if the MAC RDC is not turned off now, aggressive power management of the
+       cpu will interfere with establishing the SLIP connection */
+    NETSTACK_MAC.off(1);
+  #endif
+  /* Request prefix until it has been received */
+  while(!prefix_set) {
+    etimer_set(&et, CLOCK_SECOND);
+    request_prefix();
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+  }
+
+  /* Now turn the radio on, but disable radio duty cycling.
+   * Since we are the DAG root, reception delays would constrain mesh throughbut.
+   */
   NETSTACK_MAC.off(1);
 
-  set_own_addresses();
+  PRINTF("Multicast Engine: '%s'\n", UIP_MCAST6.name);
 
-  prepare_mcast();
+  if(join_mcast_group() == NULL) {
+    PRINTF("Failed to join multicast group\n");
+    PROCESS_EXIT();
+  }
 
-  uip_ip6addr(&addr, 0xFF02,0,0,0,0,0,0,0x02);
+  count = 0;
 
-  etimer_set(&et, START_DELAY * CLOCK_SECOND);
+  sink_conn = udp_new(NULL, UIP_HTONS(0), NULL);
+  udp_bind(sink_conn, UIP_HTONS(MCAST_SINK_UDP_PORT));
+
+  PRINTF("Listening: ");
+  PRINT6ADDR(&sink_conn->ripaddr);
+  PRINTF(" local/remote port %u/%u\n",
+        UIP_HTONS(sink_conn->lport), UIP_HTONS(sink_conn->rport));
+
   while(1) {
     PROCESS_YIELD();
-    if(etimer_expired(&et)) {
-      if(seq_id == ITERATIONS) {
-        etimer_stop(&et);
-      } else {
-        multicast_send();
-        icmptest(&addr);
-        etimer_set(&et, 100 * SEND_INTERVAL);
-      }
+    if(ev == tcpip_event) {
+      tcpip_handler();
     }
   }
 
